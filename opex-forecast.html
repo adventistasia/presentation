@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WB11 Guest Room Booking | Deployment Approval</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              wb11Gold: "#EAB41E",
+              wb11Cream: "#FCEEC8",
+              wb11Ivory: "#FFFFFF",
+            },
+            boxShadow: {
+              soft: "0 18px 45px rgba(42, 34, 0, 0.10)",
+            },
+          },
+        },
+      };
+    </script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top left, rgba(234, 180, 30, 0.22), transparent 28%),
+          radial-gradient(circle at 85% 10%, rgba(252, 238, 200, 0.95), transparent 24%),
+          linear-gradient(180deg, #fffdf7 0%, #fff9ea 42%, #fffefb 100%);
+        color: #1f2937;
+        font-family: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        font-size: 17px;
+        font-weight: 400;
+        line-height: 1.62;
+        text-align: left;
+      }
+
+      ::selection {
+        background: #eab41e;
+        color: #111827;
+      }
+
+      .grain {
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.38) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.38) 1px, transparent 1px);
+        background-size: 28px 28px;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.24), transparent 90%);
+      }
+
+      .headline {
+        font-family: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        line-height: 1.08;
+      }
+
+      .measure {
+        max-width: 68ch;
+      }
+
+      .measure-wide {
+        max-width: 75ch;
+      }
+
+      .body-copy {
+        font-size: 17px;
+        font-weight: 400;
+        line-height: 1.65;
+      }
+
+      .body-copy-sm {
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.6;
+      }
+
+      .card-veil {
+        backdrop-filter: blur(14px);
+        background: rgba(255, 255, 255, 0.82);
+      }
+
+      .soft-border {
+        border: 1px solid rgba(31, 41, 55, 0.08);
+      }
+
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const summaryCards = [
+        {
+          label: "Annual OPEX",
+          value: "$524.59",
+          hint: "Covers hosting, database, website domain, platform usage, and email services.",
+        },
+        {
+          label: "First-year reserve",
+          value: "$300.00",
+          hint: "Because there is no prior-year operating history, the reserve helps address uncertainty in first-year usage and cost patterns.",
+        },
+      ];
+
+      const numberFormatter = new Intl.NumberFormat("en-US", {
+        maximumFractionDigits: 2,
+      });
+
+      const formatQuantity = (value) => numberFormatter.format(value);
+      const formatCurrency = (value) => `$${value.toFixed(2)}`;
+      const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+      const railwayDefaults = {
+        ram: 1,
+        cpu: 0.5,
+        egress: 1,
+        storage: 5,
+      };
+
+      const railwayControls = [
+        {
+          key: "ram",
+          label: "RAM",
+          description: "Memory reserved for the app and backend runtime.",
+          unit: "GB",
+          min: 0,
+          max: 1024,
+          step: 0.25,
+        },
+        {
+          key: "cpu",
+          label: "CPU",
+          description: "Processing reserved for the app and backend runtime.",
+          unit: "vCPU",
+          min: 0,
+          max: 1000,
+          step: 0.25,
+        },
+        {
+          key: "egress",
+          label: "Network egress",
+          description: "Monthly outbound data transfer used by the app.",
+          unit: "GB/month",
+          min: 0,
+          max: 200,
+          step: 1,
+        },
+        {
+          key: "storage",
+          label: "Volume storage",
+          description: "Persistent storage used by the app and database.",
+          unit: "GB/month",
+          min: 0,
+          max: 1024,
+          step: 0.5,
+        },
+      ];
+
+      const svgDataUri = (svg) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+
+      const lhcLogoSvg = svgDataUri(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 300">
+          <rect width="820" height="300" fill="none"/>
+          <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M530 150l56-24 24-56 24 56 56 24-56 24-24 56-24-56z" fill="#FF5D3E" stroke="#6B7280" stroke-width="5"/>
+            <path d="M530 150l56 24 24 56 24-56 56-24-56-24-24-56-24 56z" fill="#FF8A3A" opacity="0.92" stroke="#6B7280" stroke-width="5"/>
+            <path d="M554 150l34-34 0 48-34 34-34-34 0-48z" fill="#F2C14E" opacity="0.92" stroke="#6B7280" stroke-width="5"/>
+            <circle cx="612" cy="126" r="12" fill="#F2C14E" stroke="#6B7280" stroke-width="5"/>
+            <circle cx="668" cy="150" r="12" fill="#FF8A3A" stroke="#6B7280" stroke-width="5"/>
+            <circle cx="642" cy="206" r="12" fill="#FF5D3E" stroke="#6B7280" stroke-width="5"/>
+            <circle cx="582" cy="220" r="12" fill="#F2C14E" stroke="#6B7280" stroke-width="5"/>
+            <circle cx="522" cy="182" r="12" fill="#FF8A3A" stroke="#6B7280" stroke-width="5"/>
+            <circle cx="522" cy="118" r="12" fill="#FF5D3E" stroke="#6B7280" stroke-width="5"/>
+            <circle cx="582" cy="80" r="12" fill="#F2C14E" stroke="#6B7280" stroke-width="5"/>
+            <circle cx="642" cy="94" r="12" fill="#FF8A3A" stroke="#6B7280" stroke-width="5"/>
+          </g>
+          <g fill="#101010">
+            <text x="40" y="172" font-family="Inter, Arial, sans-serif" font-size="132" font-weight="300" letter-spacing="-0.06em">Life Hope</text>
+            <text x="314" y="234" font-family="Inter, Arial, sans-serif" font-size="84" font-weight="300" letter-spacing="-0.04em" fill="#4B5563">center</text>
+          </g>
+        </svg>
+      `);
+
+      const decisionRows = [
+        "Guest Room Booking is ready for production but cannot deploy without an approved operating budget.",
+        "Every month without approval delays the LHC booking transition and keeps operations on manual or ad-hoc processes.",
+        "Approval unlocks deployment, gives LHC a modern booking system, and funds the first year of production operations.",
+      ];
+
+      const businessValueCards = [
+        {
+          title: "Centralised booking operations",
+          body: "LHC gets a dedicated booking platform replacing manual or ad-hoc processes. Guests book through a consistent system managed by IT.",
+        },
+        {
+          title: "Predictable annual cost",
+          body: "Annual OPEX of $524.59 covers hosting, database, domain, platform usage, and email services. A $300 first-year reserve addresses uncertainty with no prior-year operating history.",
+        },
+        {
+          title: "Clear ownership and support",
+          body: "LHC owns the budget and operational decisions. IT owns delivery and platform support. The boundary is explicit from day one.",
+        },
+      ];
+
+      const committeeLensCards = [
+        {
+          title: "Finance",
+          body: "Sees a fixed annual budget, an explicit reserve, and a clear run-rate tied to a deployed product with no hidden labor charge.",
+        },
+        {
+          title: "IT",
+          body: "Sees the deployment platform, vendor split, and operating assumptions needed to support the live application.",
+        },
+        {
+          title: "LHC operations",
+          body: "Sees a deployed booking system with clear operating scope, risk awareness, and an approved budget that keeps the service running.",
+        },
+      ];
+
+      const recurringRows = [
+        ["Railway Pro subscription", "$240.00", "Monthly billed"],
+        ["Railway net usage charge", "$9.60", "Usage-based"],
+        ["Vercel Pro subscription", "$240.00", "Monthly billed"],
+        ["Domain renewal", "$34.99", "Annual"],
+      ];
+
+      const includedItems = [
+        "Production web hosting and application runtime",
+        "Railway-hosted database service",
+        "Vercel front-end hosting",
+        "Domain registration and renewal",
+        "Platform usage charges",
+        "Email-based notifications",
+        "First-year reserve",
+      ];
+
+      const excludedItems = [
+        "Labor and salaries",
+        "Support staffing and service desk effort",
+        "Maintenance effort",
+        "SMS messaging",
+        "Paid staging support",
+        "Separate paid disaster recovery tooling",
+      ];
+
+      const operatingAssumptionCards = [
+        {
+          label: "Production environments",
+          value: "1",
+          note: "No paid staging environment is assumed.",
+        },
+        {
+          label: "Database provider",
+          value: "Railway",
+          note: "No separate database vendor is budgeted.",
+        },
+        {
+          label: "Storage / backup tools",
+          value: "Included",
+          note: "Covered within the current platform coverage.",
+        },
+        {
+          label: "Security tools",
+          value: "Included",
+          note: "Covered within the current platform and operating model.",
+        },
+        {
+          label: "Messaging",
+          value: "Email",
+          note: "Short message service (SMS) is out of scope.",
+        },
+      ];
+
+      const ownershipRows = [
+        ["LHC", "Operational owner and budget holder", "External vendor charges are budgeted here."],
+        ["IT", "Support owner and platform support", "Internal IT labor is excluded from this forecast."],
+        ["Shared / cross-charged", "Internal services shared across teams", "No shared cross-charges have been identified yet."],
+      ];
+
+      const riskRows = [
+        ["Usage growth", "Higher-than-expected traffic can increase Railway usage. Actual usage should be reviewed after go-live and the budget adjusted if needed."],
+        ["Vendor pricing changes", "Vendor pricing can change at renewal. If renewal pricing changes materially, the budget should be rebaselined before the next approval cycle."],
+        ["Scope expansion", "If a paid messaging or staging service becomes required later, the forecast must be reopened and approved before the new scope is added."],
+        ["Database move", "If the database moves away from Railway, a new line item will be needed."],
+        ["Disaster recovery", "Disaster recovery tooling stays out of scope unless separately approved in a later budget request."],
+      ];
+
+      const pricingRows = [
+        ["Railway Pro subscription", "$20/month", "Base platform fee for production use"],
+        ["Included usage credit", "$20/month", "Offsets the first $20 of resource usage each month"],
+        ["RAM", "$10/GB/month", "Used to estimate the Railway net usage charge"],
+        ["CPU", "$20/vCPU/month", "Used to estimate the Railway net usage charge"],
+        ["Network egress", "$0.05/GB", "Used to estimate the Railway net usage charge"],
+        ["Volume storage", "$0.15/GB/month", "Used to estimate the Railway net usage charge"],
+        ["Default Pro resources", "42 replicas, 1 TB RAM, 1,000 vCPU, 100 GB ephemeral storage, 1 TB volume storage", "Confirms the plan capacity is sufficient for the forecast assumptions"],
+        ["Pro platform fee", "$20/month", "Base platform fee for one deploying seat"],
+        ["Included deploying seat", "1 seat", "Covers the standard team setup used in this forecast"],
+        ["Additional paid seat", "$20/month each", "Not budgeted in this forecast"],
+        ["Included Fast Data Transfer", "1 TB/month", "Assumed to stay within the included allocation"],
+        ["Included Edge Requests", "10,000,000/month", "Assumed to stay within the included allocation"],
+        ["Managed infrastructure overage", "Billed on demand", "Not separately budgeted because the forecast assumes included limits are sufficient"],
+      ];
+
+      const pricingSources = [
+        ["Railway", "https://docs.railway.com/pricing/plans"],
+        ["Vercel", "https://vercel.com/docs/plans/pro-plan"],
+        ["Vercel pricing", "https://vercel.com/docs/pricing"],
+        ["Network Solutions", "https://www.networksolutions.com/domains"],
+      ];
+
+      function SectionHeading({ kicker, title, body }) {
+        return (
+          <div className="max-w-3xl">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-stone-600">{kicker}</p>
+            <h2 className="headline text-3xl font-bold text-stone-900 md:text-4xl">{title}</h2>
+            <p className="measure mt-4 text-base font-normal leading-[1.65] text-stone-700">{body}</p>
+          </div>
+        );
+      }
+
+      function MetricCard({ label, value, hint, accent = false }) {
+        return (
+          <div className={`soft-border rounded-[28px] p-5 shadow-soft ${accent ? "bg-[#111827] text-white" : "card-veil"}`}>
+            <p className={`text-sm font-medium ${accent ? "text-amber-200" : "text-stone-500"}`}>{label}</p>
+            <div className={`mt-4 text-4xl font-semibold tracking-tight ${accent ? "text-white" : "text-stone-900"}`}>{value}</div>
+            <p className={`measure body-copy-sm mt-3 ${accent ? "text-stone-200" : "text-stone-600"}`}>{hint}</p>
+          </div>
+        );
+      }
+
+      function RailwayInputControl({ field, value, onChange }) {
+        const sliderId = `${field.key}-slider`;
+        const inputId = `${field.key}-input`;
+
+        return (
+          <div className="rounded-[24px] border border-stone-200 bg-white p-4 shadow-soft">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <label htmlFor={sliderId} className="text-sm font-semibold text-stone-900">
+                  {field.label}
+                </label>
+                <p className="mt-1 text-sm text-stone-600">{field.description}</p>
+              </div>
+              <div className="shrink-0 rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-900">
+                {formatQuantity(value)} <span className="font-medium text-stone-500">{field.unit}</span>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_120px] sm:items-center">
+              <input
+                id={sliderId}
+                type="range"
+                min={field.min}
+                max={field.max}
+                step={field.step}
+                value={value}
+                aria-label={`${field.label} slider`}
+                onChange={(event) => onChange(field.key, event.target.value)}
+                className="h-2 w-full cursor-pointer accent-[#EAB41E]"
+              />
+              <input
+                id={inputId}
+                type="number"
+                min={field.min}
+                max={field.max}
+                step={field.step}
+                inputMode="decimal"
+                value={value}
+                aria-label={`${field.label} value`}
+                onChange={(event) => onChange(field.key, event.target.value)}
+                className="rounded-2xl border border-stone-300 bg-stone-50 px-3 py-2 text-sm font-semibold text-stone-900 focus:border-[#EAB41E] focus:outline-none focus:ring-2 focus:ring-[#EAB41E]/30"
+              />
+            </div>
+          </div>
+        );
+      }
+
+      function RailwayUsageCalculator() {
+        const [railwayUsage, setRailwayUsage] = React.useState(railwayDefaults);
+
+        const updateRailwayUsage = (key, rawValue) => {
+          const parsedValue = Number.parseFloat(rawValue);
+
+          if (Number.isNaN(parsedValue)) {
+            return;
+          }
+
+          const field = railwayControls.find((item) => item.key === key);
+
+          if (!field) {
+            return;
+          }
+
+          setRailwayUsage((current) => ({
+            ...current,
+            [key]: clamp(parsedValue, field.min, field.max),
+          }));
+        };
+
+        const monthlyUsageCost =
+          railwayUsage.ram * 10 +
+          railwayUsage.cpu * 20 +
+          railwayUsage.egress * 0.05 +
+          railwayUsage.storage * 0.15;
+        const annualUsageCost = monthlyUsageCost * 12;
+        const includedUsageCredit = 20;
+        const annualIncludedUsageCredit = includedUsageCredit * 12;
+        const monthlyNetCharge = Math.max(0, monthlyUsageCost - includedUsageCredit);
+        const annualRailwayNetCharge = monthlyNetCharge * 12;
+        const recurringRunRate = 240 + 240 + annualRailwayNetCharge + 34.99;
+        const approvedAnnualBudget = 524.59;
+        const recurringRunRateRounded = Math.round(recurringRunRate * 100) / 100;
+        const approvedAnnualBudgetRounded = Math.round(approvedAnnualBudget * 100) / 100;
+        const reserveRemaining = approvedAnnualBudgetRounded - recurringRunRateRounded;
+        const reserveRemainingRounded = Math.round(reserveRemaining * 100) / 100;
+        const annualOverage = Math.max(0, recurringRunRateRounded - approvedAnnualBudgetRounded);
+        const reserveAfterDrawdown = Math.max(0, 300 - annualOverage);
+        const budgetStatus = reserveRemaining >= 0 ? "Within budget" : "Over budget";
+        const budgetStatusTone = reserveRemaining >= 0 ? "bg-emerald-500/20 text-emerald-200" : "bg-rose-500/20 text-rose-200";
+
+        const summarySteps = [
+          {
+            step: "1",
+            label: "Included usage credit",
+            primary: `${formatCurrency(includedUsageCredit)}/month`,
+            secondary: `${formatCurrency(annualIncludedUsageCredit)}/year`,
+            note: "This is the allowance subtracted from Railway usage each month before the annual charge is rolled up.",
+          },
+          {
+            step: "2",
+            label: "Current usage before credit",
+            primary: `${formatCurrency(monthlyUsageCost)}/month`,
+            secondary: `${formatCurrency(annualUsageCost)}/year`,
+            note: "Change the controls to see the monthly and yearly usage total update in real time.",
+          },
+          {
+            step: "3",
+            label: "Credit deduction",
+            primary: `-${formatCurrency(includedUsageCredit)}/month`,
+            secondary: `${formatCurrency(monthlyNetCharge)}/month net`,
+            note: "The included credit is subtracted from the current usage, with a floor of $0 for the monthly Railway charge.",
+          },
+          {
+            step: "4",
+            label: "Annual Railway net usage charge",
+            primary: `${formatCurrency(annualRailwayNetCharge)}/year`,
+            secondary: "Monthly net charge x 12",
+            note: "This is the annual Railway usage line that feeds the recurring run-rate.",
+          },
+        ];
+
+        return (
+          <div className="mt-5 soft-border rounded-[28px] bg-[#111827] p-5 text-white shadow-soft">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-200">Live calculator</p>
+                <h3 className="mt-2 text-lg font-semibold text-white">Railway usage calculator</h3>
+                <p className="measure body-copy-sm mt-2 text-stone-200">
+                  Adjust the usage assumptions below to see the Railway cost path update in real time. The business case above stays on the current baseline.
+                </p>
+              </div>
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-amber-200">
+                Updates live
+              </span>
+            </div>
+
+            <div className="mt-5 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="space-y-3">
+                {railwayControls.map((field) => (
+                  <RailwayInputControl
+                    key={field.key}
+                    field={field}
+                    value={railwayUsage[field.key]}
+                    onChange={updateRailwayUsage}
+                  />
+                ))}
+              </div>
+
+              <div className="rounded-[24px] border border-amber-300/20 bg-black/20 p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-200">Budget status</p>
+                    <h5 className="mt-2 text-base font-semibold text-white">Annual OPEX</h5>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${budgetStatusTone}`}>
+                    {budgetStatus}
+                  </span>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-1">
+                  <div className="rounded-[18px] border border-white/10 bg-white/5 p-4">
+                    <p className="text-xs uppercase tracking-[0.16em] text-stone-300">Annual OPEX baseline</p>
+                    <div className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                      {formatCurrency(approvedAnnualBudgetRounded)}
+                    </div>
+                    <p className="mt-1 text-sm text-stone-300">Recurring annual cost for hosting, database, domain, and email.</p>
+                  </div>
+                  <div className="rounded-[18px] border border-white/10 bg-white/5 p-4">
+                    <p className="text-xs uppercase tracking-[0.16em] text-stone-300">Recurring run-rate</p>
+                    <div className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                      {formatCurrency(recurringRunRateRounded)}
+                    </div>
+                    <p className="mt-1 text-sm text-stone-300">Baseline annual spend before reserve.</p>
+                  </div>
+                  <div className="rounded-[18px] border border-white/10 bg-white/5 p-4">
+                    <p className="text-xs uppercase tracking-[0.16em] text-stone-300">Reserve</p>
+                    <div className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                      {formatCurrency(reserveAfterDrawdown)}
+                    </div>
+                    <p className="mt-1 text-sm text-stone-300">Reserve after drawing down any overage above the annual OPEX baseline.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+              <div className="mt-5 rounded-[24px] border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="text-base font-semibold text-white">Live cost summary</h4>
+                <span className="rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-stone-200">
+                  Computed now
+                </span>
+              </div>
+
+              <p className="measure body-copy-sm mt-4 text-stone-200">
+                Start with the included credit, compare it with the live usage, and subtract the credit to reach the annual Railway net usage charge.
+              </p>
+
+              <div className="mt-4 space-y-3">
+                {summarySteps.map((item) => (
+                  <div key={item.step} className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-200">Step {item.step}</p>
+                        <h5 className="mt-2 text-base font-semibold text-white">{item.label}</h5>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-semibold tracking-tight text-white">{item.primary}</div>
+                        <div className="mt-1 text-xs uppercase tracking-[0.16em] text-stone-300">{item.secondary}</div>
+                      </div>
+                    </div>
+                    <p className="measure body-copy-sm mt-3 text-stone-200">{item.note}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function RailwayPricingBasis() {
+        return (
+          <div className="mt-5 soft-border rounded-[28px] bg-white p-5 shadow-soft">
+            <div className="flex items-center justify-between gap-3 text-lg font-semibold text-stone-900">
+              <h3>Pricing basis</h3>
+              <span className="rounded-full bg-[#FCEEC8] px-3 py-1 text-xs uppercase tracking-[0.18em] text-stone-700">Review</span>
+            </div>
+            <p className="measure body-copy-sm mt-3 text-stone-700">
+              Pricing is shown as of 2026-05-24 and should be re-checked before purchase or renewal.
+            </p>
+            <p className="measure body-copy-sm mt-1 text-stone-500">
+              Pricing consistent with published Railway and Vercel Pro plan rates.
+            </p>
+            <div className="mt-4 overflow-hidden rounded-[22px] border border-stone-200">
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-stone-50 text-stone-600">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Item</th>
+                    <th className="px-4 py-3 font-semibold">Price / limit</th>
+                    <th className="px-4 py-3 font-semibold">Use in this forecast</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-200">
+                  {pricingRows.map((row) => (
+                    <tr key={row[0]}>
+                      {row.map((cell) => (
+                        <td key={cell} className="px-4 py-3 text-stone-700">
+                          {cell}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {pricingSources.map(([vendor, url]) => (
+                <a
+                  key={vendor}
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="soft-border rounded-[20px] bg-stone-50 p-4 text-sm text-stone-700 transition hover:bg-stone-100"
+                >
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">{vendor}</div>
+                  <div className="mt-2 break-all text-sm text-stone-900">{url}</div>
+                </a>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      function App() {
+        return (
+          <div className="relative">
+            <div className="grain pointer-events-none absolute inset-0 opacity-30"></div>
+            <main className="relative mx-auto max-w-[1024px] px-4 pb-16 pt-5 sm:px-6 lg:px-0">
+              <header className="card-veil soft-border overflow-hidden rounded-[36px] shadow-soft">
+                <div className="flex flex-col gap-8 p-6 sm:p-8 lg:p-10">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <img src={lhcLogoSvg} alt="Life Hope Center logo" className="h-12 w-auto object-contain sm:h-14" />
+                    <span className="rounded-full bg-[#111827] px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-white">WB11</span>
+                    <span className="rounded-full bg-[#FCEEC8] px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-stone-700">Build draft</span>
+                    <span className="rounded-full border border-stone-300 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-stone-600">Guest Room Booking</span>
+                  </div>
+
+                  <div className="grid gap-8 lg:grid-cols-[1.18fr_0.82fr] lg:items-start">
+                    <div>
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-stone-600">Business case</p>
+                      <h1 className="headline max-w-3xl text-4xl font-bold leading-tight text-stone-900 sm:text-5xl lg:text-6xl">
+                        Deploy Guest Room Booking for LHC.
+                      </h1>
+                      <div className="measure-wide mt-5 text-[17px] font-normal leading-[1.65] text-stone-700">
+                        <p>This page makes the case for deploying the Guest Room Booking web application to production. Deployment gives Life Hope Center a modern, funded booking platform — replacing manual processes with a dedicated system managed by IT.</p>
+                        <p className="mt-4">Approval covers deployment with an annual OPEX of <strong>$524.59/year</strong> covering hosting, database, website domain, platform usage, and email services. A <strong>$300.00 first-year reserve</strong> addresses uncertainty because there is no prior-year operating history.</p>
+                        <p className="mt-4">LHC gains a centralised booking operation, reduced administrative overhead, and a predictable annual cost. IT gets a clear support boundary. Finance gets a fixed budget with no hidden labor charge.</p>
+                        <p className="mt-4">The sections below lay out the business case, the budget, and the supporting assumptions.</p>
+                      </div>
+                      <div className="mt-6 flex flex-wrap justify-start gap-3">
+                        <a href="#decision" className="rounded-full bg-[#111827] px-5 py-3 text-sm font-semibold text-white shadow-soft transition hover:-translate-y-0.5 hover:bg-stone-800">Go to the decision</a>
+                      </div>
+                    </div>
+
+                    <div className="soft-border rounded-[30px] bg-[#111827] p-6 text-white shadow-soft">
+                      <p className="text-sm font-medium text-amber-200">What approval unlocks</p>
+                      <h2 className="headline mt-4 text-3xl font-bold tracking-tight text-white">Deploy Guest Room Booking with a funded first-year operating model.</h2>
+                      <p className="measure mt-4 text-[17px] leading-[1.65] text-stone-200">
+                        Deployment gives LHC a dedicated booking platform managed by IT, replaces manual processes, and funds the first year of production operations. Every month without approval delays the transition and keeps LHC on ad-hoc processes.
+                      </p>
+                      <div className="mt-6 overflow-hidden rounded-[22px] border border-white/10 bg-white/5">
+                        <table className="min-w-full text-left text-sm">
+                          <thead className="bg-white/10 text-amber-200">
+                            <tr>
+                              <th className="px-4 py-3 font-semibold">Why deploy now</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/10">
+                            {decisionRows.map((row) => (
+                              <tr key={row}>
+                                <td className="px-4 py-3 text-stone-200">{row}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </header>
+
+              <section id="business-case" className="mt-8">
+                <SectionHeading
+                  kicker="Business case"
+                  title="What deployment delivers for LHC"
+                  body="Deploying Guest Room Booking to production gives LHC a centralised booking platform with a predictable operating cost. The cards below summarise the business value, the ownership model, and the budget required to support the deployed product."
+                />
+                <div className="mt-6 grid gap-5 md:grid-cols-3">
+                  {businessValueCards.map((card) => (
+                    <div key={card.title} className="soft-border rounded-[28px] bg-white p-6 shadow-soft">
+                      <h3 className="text-lg font-semibold text-stone-900">{card.title}</h3>
+                      <p className="measure body-copy-sm mt-3 text-stone-700">{card.body}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section id="committee" className="mt-8">
+                <SectionHeading
+                  kicker="Committee lens"
+                  title="How each reviewer sees the deployment"
+                  body="This page is written for a mixed decision committee. Finance needs budget certainty tied to a deployed product, IT needs a support boundary, and LHC operations needs a live system with clear operating scope."
+                />
+                <div className="mt-6 grid gap-5 md:grid-cols-3">
+                  {committeeLensCards.map((card) => (
+                    <div key={card.title} className="soft-border rounded-[28px] bg-white p-6 shadow-soft">
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">{card.title}</p>
+                      <p className="measure body-copy-sm mt-3 text-stone-700">{card.body}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section id="summary" className="mt-8">
+                <SectionHeading
+                  kicker="Budget summary"
+                  title="What the first year costs"
+                  body="Approval covers deployment and first-year operations. LHC is the operational owner and budget holder; IT is the support owner. The cards below show the annual OPEX and the first-year reserve."
+                />
+                <div className="mt-6 grid gap-5 md:grid-cols-2">
+                  {summaryCards.map((card, index) => (
+                    <MetricCard key={card.label} label={card.label} value={card.value} hint={card.hint} accent={index === 0} />
+                  ))}
+                </div>
+              </section>
+
+              <section id="scope" className="mt-14">
+                <SectionHeading
+                  kicker="Scope"
+                  title="Decision scope"
+                  body="This section defines what is included in the deployment decision and identifies items that need separate funding. The first-year reserve is included, while labor, SMS, staging, and separate disaster recovery tooling stay out of scope."
+                />
+                <div className="mt-6 grid gap-5 lg:grid-cols-2">
+                  <div className="soft-border rounded-[28px] bg-white p-6 shadow-soft">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <h3 className="text-lg font-semibold text-stone-900">In scope</h3>
+                      <span className="rounded-full bg-[#FCEEC8] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-stone-700">Included</span>
+                    </div>
+                    <ul className="measure mt-4 space-y-2 text-base font-normal leading-[1.65] text-stone-700">
+                      {includedItems.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="soft-border rounded-[28px] bg-stone-50 p-6 shadow-soft">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <h3 className="text-lg font-semibold text-stone-900">Out of scope</h3>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-stone-700">Excluded</span>
+                    </div>
+                    <ul className="measure mt-4 space-y-2 text-base font-normal leading-[1.65] text-stone-700">
+                      {excludedItems.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </section>
+
+              <section id="risk" className="mt-14">
+                <SectionHeading
+                  kicker="Risk"
+                  title="Key risks and management approach"
+                  body="The following risks may affect operating costs or future funding requirements. Each risk has an identified response to support ongoing budget control."
+                />
+                <div className="mt-6 soft-border rounded-[28px] bg-white p-6 shadow-soft">
+                  <div className="overflow-hidden rounded-[22px] border border-stone-200">
+                    <table className="min-w-full text-left text-sm">
+                      <thead className="bg-stone-50 text-stone-600">
+                        <tr>
+                          <th className="px-4 py-3 font-semibold">Risk</th>
+                          <th className="px-4 py-3 font-semibold">Management approach</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-200">
+                        {riskRows.map((row) => (
+                          <tr key={row[0]}>
+                            {row.map((cell) => (
+                              <td key={cell} className="px-4 py-3 text-stone-700">{cell}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </section>
+
+              <section id="details" className="mt-14">
+                <SectionHeading
+                  kicker="Technical appendix"
+                  title="Optional supporting assumptions and cost basis"
+                  body="This appendix provides the assumptions, pricing inputs, ownership model, and operating considerations used to prepare the budget forecast. Open it if you want to validate the model, but it is not required for the deployment decision."
+                />
+                <details className="mt-6 soft-border rounded-[28px] bg-white p-6 shadow-soft">
+                  <summary className="cursor-pointer list-none text-lg font-semibold text-stone-900">
+                    Click to view the optional assumptions, pricing basis, and live calculator
+                  </summary>
+                  <div className="mt-5 grid gap-5 lg:grid-cols-[3fr_2fr]">
+                    <div className="space-y-5">
+                      <div className="soft-border rounded-[28px] bg-white p-6 shadow-soft">
+                        <div className="flex items-center justify-between gap-4">
+                          <h3 className="text-lg font-semibold text-stone-900">Cost detail</h3>
+                          <span className="rounded-full bg-[#FCEEC8] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-stone-700">Annual</span>
+                        </div>
+                        <p className="measure body-copy-sm mt-3 text-stone-700">
+                          The annual OPEX is $524.59, covering hosting, database, website domain, platform usage, and email services. A $300 first-year reserve is added because there is no prior-year operating history, and the reserve helps address uncertainty in first-year usage and cost patterns.
+                        </p>
+                        <div className="mt-5 overflow-hidden rounded-[22px] border border-stone-200">
+                          <table className="min-w-full text-left text-sm">
+                            <thead className="bg-stone-50 text-stone-600">
+                              <tr>
+                                <th className="px-4 py-3 font-semibold">Item</th>
+                                <th className="px-4 py-3 font-semibold">Amount</th>
+                                <th className="px-4 py-3 font-semibold">Frequency</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-stone-200">
+                              {recurringRows.map((row) => (
+                                <tr key={row[0]}>
+                                  {row.map((cell) => (
+                                    <td key={cell} className="px-4 py-3 text-stone-700">{cell}</td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      <div className="soft-border rounded-[28px] bg-[#111827] p-5 text-white shadow-soft">
+                        <div className="flex items-center justify-between gap-3 text-lg font-semibold">
+                          <h3>Ownership and funding</h3>
+                          <span className="rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-amber-200">Review</span>
+                        </div>
+                        <div className="mt-4 overflow-hidden rounded-[22px] bg-white/10">
+                          <table className="min-w-full text-left text-sm">
+                            <thead className="bg-white/10 text-amber-200">
+                              <tr>
+                                <th className="px-4 py-3 font-semibold">Cost owner</th>
+                                <th className="px-4 py-3 font-semibold">Responsibility</th>
+                                <th className="px-4 py-3 font-semibold">In this forecast</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/10">
+                              {ownershipRows.map((row) => (
+                                <tr key={row[0]}>
+                                  {row.map((cell) => (
+                                    <td key={cell} className="px-4 py-3 text-stone-200">{cell}</td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <p className="measure body-copy-sm mt-4 text-stone-200">
+                          External platform and vendor costs are budgeted to LHC. Internal labor, support staffing, service desk effort, and maintenance effort are excluded from this forecast.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="soft-border rounded-[28px] bg-white p-5 shadow-soft">
+                      <div className="flex items-center justify-between gap-3 text-lg font-semibold text-stone-900">
+                        <h3>Usage assumptions</h3>
+                        <span className="rounded-full bg-[#FCEEC8] px-3 py-1 text-xs uppercase tracking-[0.18em] text-stone-700">Review</span>
+                      </div>
+                      <div className="mt-4 overflow-hidden rounded-[22px] border border-stone-200">
+                        <table className="min-w-full text-left text-sm">
+                          <thead className="bg-stone-50 text-stone-600">
+                            <tr>
+                              <th className="px-4 py-3 font-semibold">User driver</th>
+                              <th className="px-4 py-3 font-semibold">Baseline</th>
+                              <th className="px-4 py-3 font-semibold">High</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-stone-200">
+                            <tr>
+                              <td className="px-4 py-3 text-stone-700">Monthly active users</td>
+                              <td className="px-4 py-3 text-stone-700">15</td>
+                              <td className="px-4 py-3 text-stone-700">30</td>
+                            </tr>
+                            <tr>
+                              <td className="px-4 py-3 text-stone-700">Requests per user per month</td>
+                              <td className="px-4 py-3 text-stone-700">30</td>
+                              <td className="px-4 py-3 text-stone-700">60</td>
+                            </tr>
+                            <tr>
+                              <td className="px-4 py-3 text-stone-700">Derived monthly requests</td>
+                              <td className="px-4 py-3 text-stone-700">450</td>
+                              <td className="px-4 py-3 text-stone-700">1,800</td>
+                            </tr>
+                            <tr>
+                              <td className="px-4 py-3 text-stone-700">Average payload per request</td>
+                              <td className="px-4 py-3 text-stone-700">50 KB</td>
+                              <td className="px-4 py-3 text-stone-700">100 KB</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="mt-4 overflow-hidden rounded-[22px] border border-stone-200">
+                        <table className="min-w-full text-left text-sm">
+                          <thead className="bg-stone-50 text-stone-600">
+                            <tr>
+                              <th className="px-4 py-3 font-semibold">Platform assumption</th>
+                              <th className="px-4 py-3 font-semibold">Baseline</th>
+                              <th className="px-4 py-3 font-semibold">High</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-stone-200">
+                            <tr>
+                              <td className="px-4 py-3 text-stone-700">Railway memory (RAM)</td>
+                              <td className="px-4 py-3 text-stone-700">1 GB</td>
+                              <td className="px-4 py-3 text-stone-700">2 GB</td>
+                            </tr>
+                            <tr>
+                              <td className="px-4 py-3 text-stone-700">Railway processing power (CPU)</td>
+                              <td className="px-4 py-3 text-stone-700">0.5 vCPU</td>
+                              <td className="px-4 py-3 text-stone-700">1 vCPU</td>
+                            </tr>
+                            <tr>
+                              <td className="px-4 py-3 text-stone-700">Railway network egress</td>
+                              <td className="px-4 py-3 text-stone-700">1 GB/month</td>
+                              <td className="px-4 py-3 text-stone-700">5 GB/month</td>
+                            </tr>
+                            <tr>
+                              <td className="px-4 py-3 text-stone-700">Railway volume storage</td>
+                              <td className="px-4 py-3 text-stone-700">5 GB</td>
+                              <td className="px-4 py-3 text-stone-700">10 GB</td>
+                            </tr>
+                            <tr>
+                              <td className="px-4 py-3 text-stone-700">Vercel data transfer</td>
+                              <td className="px-4 py-3 text-stone-700">50 GB/month</td>
+                              <td className="px-4 py-3 text-stone-700">100 GB/month</td>
+                            </tr>
+                            <tr>
+                              <td className="px-4 py-3 text-stone-700">Vercel edge requests</td>
+                              <td className="px-4 py-3 text-stone-700">1M/month</td>
+                              <td className="px-4 py-3 text-stone-700">2M/month</td>
+                            </tr>
+                            <tr>
+                              <td className="px-4 py-3 text-stone-700">Vercel functions</td>
+                              <td className="px-4 py-3 text-stone-700">Within included thresholds</td>
+                              <td className="px-4 py-3 text-stone-700">Within included thresholds</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+                  <section className="mt-5 soft-border rounded-[28px] bg-white p-6 shadow-soft">
+                    <SectionHeading
+                      kicker="Operating model"
+                      title="Production environment and platform assumptions"
+                      body="These assumptions describe the live production setup used by the forecast. They are kept separate from the usage driver tables so the operating model is easy to scan and approve."
+                    />
+                    <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                      {operatingAssumptionCards.map((card) => (
+                        <div key={card.label} className="soft-border rounded-[28px] bg-stone-50 p-6 shadow-soft">
+                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">{card.label}</p>
+                          <div className="mt-3 text-2xl font-semibold tracking-tight text-stone-900">{card.value}</div>
+                          <p className="measure body-copy-sm mt-3 text-stone-700">{card.note}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="measure body-copy-sm mt-5 text-stone-700">
+                      Availability target, support hours, recovery time objective (RTO), and recovery point objective (RPO) are tracked in a separate operating-profile artifact.
+                    </p>
+                  </section>
+
+                  <RailwayPricingBasis />
+                  <RailwayUsageCalculator />
+
+                  <div className="mt-5 soft-border rounded-[28px] bg-white p-5 shadow-soft">
+                    <div className="flex items-center justify-between gap-3 text-lg font-semibold text-stone-900">
+                      <h3>Glossary</h3>
+                      <span className="rounded-full bg-[#FCEEC8] px-3 py-1 text-xs uppercase tracking-[0.18em] text-stone-700">Reference</span>
+                    </div>
+                    <div className="mt-4 overflow-hidden rounded-[22px] border border-stone-200">
+                      <table className="min-w-full text-left text-sm">
+                        <thead className="bg-stone-50 text-stone-600">
+                          <tr>
+                            <th className="px-4 py-3 font-semibold">Term</th>
+                            <th className="px-4 py-3 font-semibold">Meaning</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-stone-200">
+                          <tr>
+                            <td className="px-4 py-3 text-stone-700">OPEX</td>
+                            <td className="px-4 py-3 text-stone-700">Operating expense, or the ongoing cost of running normal business operations.</td>
+                          </tr>
+                          <tr>
+                            <td className="px-4 py-3 text-stone-700">LHC</td>
+                            <td className="px-4 py-3 text-stone-700">Life Hope Center.</td>
+                          </tr>
+                          <tr>
+                            <td className="px-4 py-3 text-stone-700">IT</td>
+                            <td className="px-4 py-3 text-stone-700">Information Technology.</td>
+                          </tr>
+                          <tr>
+                            <td className="px-4 py-3 text-stone-700">Railway</td>
+                            <td className="px-4 py-3 text-stone-700">The hosting and platform provider used for the app, backend, and database.</td>
+                          </tr>
+                          <tr>
+                            <td className="px-4 py-3 text-stone-700">Vercel</td>
+                            <td className="px-4 py-3 text-stone-700">The front-end hosting platform.</td>
+                          </tr>
+                          <tr>
+                            <td className="px-4 py-3 text-stone-700">RTO</td>
+                            <td className="px-4 py-3 text-stone-700">Recovery time objective.</td>
+                          </tr>
+                          <tr>
+                            <td className="px-4 py-3 text-stone-700">RPO</td>
+                            <td className="px-4 py-3 text-stone-700">Recovery point objective.</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </details>
+              </section>
+
+              <section id="decision" className="mt-14">
+                <div className="soft-border rounded-[28px] bg-[#FCEEC8] p-6 shadow-soft">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-700">Decision</p>
+                  <h3 className="headline mt-3 text-3xl font-bold text-stone-900">Approve deployment of Guest Room Booking and the annual OPEX.</h3>
+                  <p className="measure mt-4 text-base font-normal leading-[1.65] text-stone-700">
+                    Deployment gives LHC a modern booking platform with an annual OPEX of $524.59 and a $300 first-year reserve to address usage uncertainty. Without approval, LHC continues on manual or ad-hoc booking processes.
+                  </p>
+                  <ul className="measure mt-4 list-disc space-y-3 pl-5 text-base font-normal leading-[1.65] text-stone-700 marker:text-stone-500">
+                    <li>Approve Guest Room Booking for production deployment.</li>
+                    <li>Approve $524.59/year as the annual OPEX for hosting, database, domain, platform usage, and email services.</li>
+                    <li>Approve $300.00 as a first-year reserve because there is no prior-year operating history.</li>
+                  </ul>
+                </div>
+              </section>
+
+              <footer className="mt-14 border-t border-stone-200 pt-6 text-sm text-stone-600">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <p>WB11 Digital Product Workspace | Build artifact for measure stage</p>
+                  <p>Based on pricing and assumptions current as of 2026-05-24.</p>
+                </div>
+              </footer>
+            </main>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>
