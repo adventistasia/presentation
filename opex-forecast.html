@@ -109,13 +109,8 @@
       const summaryCards = [
         {
           label: "Annual OPEX",
-          value: "$524.59",
-          hint: "Covers hosting, database, website domain, platform usage, and email services.",
-        },
-        {
-          label: "First-year reserve",
-          value: "$300.00",
-          hint: "Because there is no prior-year operating history, the reserve helps address uncertainty in first-year usage and cost patterns.",
+          value: "$824.59",
+          hint: "Covers expected infrastructure costs and a first-year operating reserve.",
         },
       ];
 
@@ -211,7 +206,7 @@
         },
         {
           title: "Predictable annual cost",
-          body: "Annual OPEX of $524.59 covers hosting, database, domain, platform usage, and email services. A $300 first-year reserve addresses uncertainty with no prior-year operating history.",
+          body: "Annual OPEX of $824.59 covers expected infrastructure costs and a first-year operating reserve.",
         },
         {
           title: "Clear ownership and support",
@@ -424,15 +419,13 @@
         const monthlyNetCharge = Math.max(0, monthlyUsageCost - includedUsageCredit);
         const annualRailwayNetCharge = monthlyNetCharge * 12;
         const recurringRunRate = 240 + 240 + annualRailwayNetCharge + 34.99;
-        const approvedAnnualBudget = 524.59;
+        const approvedAnnualBudget = 824.59;
         const recurringRunRateRounded = Math.round(recurringRunRate * 100) / 100;
         const approvedAnnualBudgetRounded = Math.round(approvedAnnualBudget * 100) / 100;
-        const reserveRemaining = approvedAnnualBudgetRounded - recurringRunRateRounded;
-        const reserveRemainingRounded = Math.round(reserveRemaining * 100) / 100;
-        const annualOverage = Math.max(0, recurringRunRateRounded - approvedAnnualBudgetRounded);
-        const reserveAfterDrawdown = Math.max(0, 300 - annualOverage);
-        const budgetStatus = reserveRemaining >= 0 ? "Within budget" : "Over budget";
-        const budgetStatusTone = reserveRemaining >= 0 ? "bg-emerald-500/20 text-emerald-200" : "bg-rose-500/20 text-rose-200";
+        const reserveRemaining = Math.max(0, approvedAnnualBudgetRounded - recurringRunRateRounded);
+        const isOverBudget = recurringRunRateRounded > approvedAnnualBudgetRounded;
+        const budgetStatus = isOverBudget ? "Out of budget" : "Within budget";
+        const budgetStatusTone = isOverBudget ? "bg-rose-500/20 text-rose-200" : "bg-emerald-500/20 text-emerald-200";
 
         const summarySteps = [
           {
@@ -503,13 +496,19 @@
                   </span>
                 </div>
 
+                {isOverBudget && (
+                  <p className="mt-3 text-sm font-medium text-rose-200">
+                    Recurring run-rate exceeds the approved annual budget.
+                  </p>
+                )}
+
                 <div className="mt-4 grid gap-3 md:grid-cols-1">
                   <div className="rounded-[18px] border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-[0.16em] text-stone-300">Annual OPEX baseline</p>
+                    <p className="text-xs uppercase tracking-[0.16em] text-stone-300">Approved annual budget</p>
                     <div className="mt-2 text-2xl font-semibold tracking-tight text-white">
                       {formatCurrency(approvedAnnualBudgetRounded)}
                     </div>
-                    <p className="mt-1 text-sm text-stone-300">Recurring annual cost for hosting, database, domain, and email.</p>
+                    <p className="mt-1 text-sm text-stone-300">Total approved OPEX covering infrastructure costs and a first-year operating reserve.</p>
                   </div>
                   <div className="rounded-[18px] border border-white/10 bg-white/5 p-4">
                     <p className="text-xs uppercase tracking-[0.16em] text-stone-300">Recurring run-rate</p>
@@ -519,11 +518,11 @@
                     <p className="mt-1 text-sm text-stone-300">Baseline annual spend before reserve.</p>
                   </div>
                   <div className="rounded-[18px] border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-[0.16em] text-stone-300">Reserve</p>
+                    <p className="text-xs uppercase tracking-[0.16em] text-stone-300">Remaining reserve</p>
                     <div className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                      {formatCurrency(reserveAfterDrawdown)}
+                      {formatCurrency(reserveRemaining)}
                     </div>
-                    <p className="mt-1 text-sm text-stone-300">Reserve after drawing down any overage above the annual OPEX baseline.</p>
+                    <p className="mt-1 text-sm text-stone-300">Approved annual budget minus the recurring run-rate.</p>
                   </div>
                 </div>
               </div>
@@ -638,7 +637,7 @@
                       </h1>
                       <div className="measure-wide mt-5 text-[17px] font-normal leading-[1.65] text-stone-700">
                         <p>This page makes the case for deploying the Guest Room Booking web application to production. Deployment gives Life Hope Center a modern, funded booking platform — replacing manual processes with a dedicated system managed by IT.</p>
-                        <p className="mt-4">Approval covers deployment with an annual OPEX of <strong>$524.59/year</strong> covering hosting, database, website domain, platform usage, and email services. A <strong>$300.00 first-year reserve</strong> addresses uncertainty because there is no prior-year operating history.</p>
+                        <p className="mt-4">Approval covers deployment with an annual OPEX of <strong>$824.59/year</strong> covering expected infrastructure costs and a first-year operating reserve.</p>
                         <p className="mt-4">LHC gains a centralised booking operation, reduced administrative overhead, and a predictable annual cost. IT gets a clear support boundary. Finance gets a fixed budget with no hidden labor charge.</p>
                         <p className="mt-4">The sections below lay out the business case, the budget, and the supporting assumptions.</p>
                       </div>
@@ -703,19 +702,6 @@
                       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">{card.title}</p>
                       <p className="measure body-copy-sm mt-3 text-stone-700">{card.body}</p>
                     </div>
-                  ))}
-                </div>
-              </section>
-
-              <section id="summary" className="mt-8">
-                <SectionHeading
-                  kicker="Budget summary"
-                  title="What the first year costs"
-                  body="Approval covers deployment and first-year operations. LHC is the operational owner and budget holder; IT is the support owner. The cards below show the annual OPEX and the first-year reserve."
-                />
-                <div className="mt-6 grid gap-5 md:grid-cols-2">
-                  {summaryCards.map((card, index) => (
-                    <MetricCard key={card.label} label={card.label} value={card.value} hint={card.hint} accent={index === 0} />
                   ))}
                 </div>
               </section>
@@ -1021,12 +1007,11 @@
                   <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-700">Decision</p>
                   <h3 className="headline mt-3 text-3xl font-bold text-stone-900">Approve deployment of Guest Room Booking and the annual OPEX.</h3>
                   <p className="measure mt-4 text-base font-normal leading-[1.65] text-stone-700">
-                    Deployment gives LHC a modern booking platform with an annual OPEX of $524.59 and a $300 first-year reserve to address usage uncertainty. Without approval, LHC continues on manual or ad-hoc booking processes.
+                    Deployment gives LHC a modern booking platform with an annual OPEX of $824.59 covering expected infrastructure costs and a first-year operating reserve. Without approval, LHC continues on manual or ad-hoc booking processes.
                   </p>
                   <ul className="measure mt-4 list-disc space-y-3 pl-5 text-base font-normal leading-[1.65] text-stone-700 marker:text-stone-500">
                     <li>Approve Guest Room Booking for production deployment.</li>
-                    <li>Approve $524.59/year as the annual OPEX for hosting, database, domain, platform usage, and email services.</li>
-                    <li>Approve $300.00 as a first-year reserve because there is no prior-year operating history.</li>
+                    <li>Approve $824.59/year as the annual OPEX covering expected infrastructure costs and a first-year operating reserve.</li>
                   </ul>
                 </div>
               </section>
