@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WB11 Guest Room Booking | Operations and Support Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              wb11Gold: "#EAB41E",
+              wb11Cream: "#FCEEC8",
+              wb11Ivory: "#FFFFFF",
+            },
+            boxShadow: {
+              soft: "0 18px 45px rgba(42, 34, 0, 0.10)",
+            },
+          },
+        },
+      };
+    </script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top left, rgba(234, 180, 30, 0.22), transparent 28%),
+          radial-gradient(circle at 88% 8%, rgba(252, 238, 200, 0.9), transparent 24%),
+          linear-gradient(180deg, #fffdf7 0%, #fff9ea 46%, #fffefb 100%);
+        color: #1f2937;
+        font-family: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        font-size: 17px;
+        font-weight: 400;
+        line-height: 1.62;
+        text-align: left;
+      }
+
+      ::selection {
+        background: #eab41e;
+        color: #111827;
+      }
+
+      .grain {
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.36) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.36) 1px, transparent 1px);
+        background-size: 28px 28px;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.22), transparent 90%);
+      }
+
+      .headline {
+        font-weight: 800;
+        letter-spacing: -0.05em;
+        line-height: 1.05;
+      }
+
+      .measure {
+        max-width: 68ch;
+      }
+
+      .soft-border {
+        border: 1px solid rgba(31, 41, 55, 0.08);
+      }
+
+      table {
+        width: 100%;
+        table-layout: fixed;
+      }
+
+      th,
+      td {
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        vertical-align: top;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const serviceCategories = [
+        ["User Access and Security", "Role changes, permission updates, account creation, access removal, deactivation, access reviews", "Technical Support Owner"],
+        ["Room and Booking Operations", "Room setup, availability, pricing updates, booking corrections", "Operational Owner"],
+        ["System Incidents and Maintenance", "Outages, errors, login failures, deployments, health checks", "Technical Support Owner"],
+        ["Vendor and Platform Support", "Railway, Vercel, domain registrar, email provider coordination", "Technical Support Owner"],
+        ["Backup, Recovery, and Reporting", "Backups, restore, support trends, operational reviews", "Technical Support Owner"],
+      ];
+
+      const roles = [
+        ["Service Desk (first contact)", "SSD Helpdesk", "Logs tickets, triages requests, routes to the right owner, tracks status"],
+        ["Operational Owner (business ops, rooms, pricing)", "LHC Management / LHC IT / authorized business ops admins", "Day-to-day business operations, room management, pricing, account admin, business approvals"],
+        ["Technical Support Owner (system issues, incidents)", "SSD IT", "System issues, incidents, deployments, monitoring, backup/recovery, vendor escalation"],
+        ["Security and Access Owner (permissions, reviews)", "SSD IT (with Operational Owner input)", "Access standards, privileged access, periodic access reviews, audit, security escalation"],
+      ];
+
+      const stakeholders = [
+        ["Internal - Sponsor and budget holder", "LHC Management", "Business owner, approves scope and priority"],
+        ["Internal - IT operations", "LHC IT", "IT operations, system access governance"],
+        ["Internal - Support and delivery", "SSD IT", "Technical support, maintenance, vendor coordination"],
+        ["Internal - Business operations", "LHC Management / authorized business ops admins", "Day-to-day booking and room operations"],
+        ["External vendor", "Railway", "Hosting and database platform"],
+        ["External vendor", "Vercel", "Front-end hosting"],
+        ["External vendor", "Network Solutions", "Domain registration"],
+        ["External vendor", "Email provider", "Notification delivery"],
+        ["Original development team", "Gian Carlo Pacayra, John Kyle Riosa, Khairon Gonzales", "Application design and build, handover support"],
+      ];
+
+      const routing = [
+        ["Role change / permission update", "Service Desk", "Technical Support Owner", "Operational Owner -> Technical Support Owner -> Security and Access Governance Owner"],
+        ["Access removal / deactivation", "Service Desk", "Technical Support Owner", "Operational Owner -> Technical Support Owner -> Security and Access Governance Owner"],
+        ["Access review", "Service Desk", "Security and Access Governance Owner", "Security and Access Governance Owner -> Operational Owner -> Business Sponsor"],
+        ["Room management", "Service Desk", "Operational Owner", "Operational Owner -> Technical Support Owner"],
+        ["Pricing update", "Service Desk", "Operational Owner", "Operational Owner -> Business Sponsor -> Technical Support Owner (if system change needed)"],
+        ["Booking / reservation issue", "Service Desk", "Operational Owner", "Operational Owner -> Technical Support Owner"],
+        ["System incident / outage", "Service Desk", "Technical Support Owner", "Technical Support Owner -> Vendor -> Operational Owner / Business Sponsor"],
+        ["Technical maintenance", "Service Desk", "Technical Support Owner", "Technical Support Owner -> Vendor -> Business Sponsor (if business impact is high)"],
+        ["Vendor / platform issue", "Service Desk", "Technical Support Owner", "Technical Support Owner -> Vendor -> Business Sponsor"],
+        ["Backup / recovery", "Service Desk", "Technical Support Owner", "Technical Support Owner -> Vendor -> Operational Owner"],
+      ];
+
+      const contacts = [
+        ["SSD Helpdesk (Service Desk) \u2014 Primary contact", ["https://helpdesk.ssd.org/"]],
+        ["SSD IT (Technical Support Owner)", ["https://helpdesk.ssd.org/"]],
+        ["LHC Management (Operational Owner)", ["mjestacio@ssd.org", "lmtan@ssd.org", "mselerio@ssd.org"]],
+        ["LHC IT", ["kbaliton@ssd.org"]],
+        ["Railway (hosting platform)", ["https://docs.railway.com/platform/support#central-station"]],
+        ["Vercel (front-end hosting)", ["https://vercel.com/legal/support-terms"]],
+        ["Network Solutions (domain)", ["1-800-361-5717", "https://networksolutions.com/contact-us"]],
+        ["Original development team (handover support only)", ["Gian Carlo Pacayra - gianpacayra@gmail.com", "John Kyle Riosa - 2050178@aup.edu.ph", "Khairon Gonzales - 2039168@aup.edu.ph"]],
+      ];
+
+      const severityRows = [
+        ["Sev 1", "Critical outage", "Immediate"],
+        ["Sev 2", "Major degradation", "Within 30 min"],
+        ["Sev 3", "Minor issue", "Within 4 business hours"],
+        ["Sev 4", "Informational", "Next business day"],
+      ];
+
+      const supportNotes = [
+        "Support hours: standard business hours, GMT+8. After-hours coverage is under review.",
+        "Ticket intake: all requests start at the Service Desk (SSD Helpdesk).",
+        "Escalation: if the Primary Owner cannot resolve, follow the routing chain above.",
+        "Backup: daily by Railway, kept 6 days. Restore test recommended quarterly.",
+        "Monitoring: built-in platform monitoring. No paid monitoring tool budgeted.",
+      ];
+
+      const quickFacts = [
+        ["Support hours", "Standard business hours", "GMT+8, after-hours under review"],
+        ["Ticket intake", "SSD Helpdesk", "All requests start there"],
+        ["Severity", "Sev 1 immediate", "Sev 2 within 30 minutes"],
+        ["Backup", "Daily by Railway", "Kept 6 days; quarterly restore test"],
+      ];
+
+      const pageMeta = {
+        owner: "LHC Management (Operational Owner)",
+        version: "1.1",
+        lastUpdated: "2026-06-04",
+      };
+
+      const startHereSteps = [
+        "Go to SSD Helpdesk (https://helpdesk.ssd.org/)",
+        "Provide your request details and severity",
+        "The Service Desk triages and routes to the right owner",
+        "The owner resolves or escalates following the routing chain",
+      ];
+
+      const sections = [
+        {
+          id: "overview",
+          label: "Overview",
+          eyebrow: "Overview",
+          title: "What this guide is for",
+          summary: "This guide is designed to keep the booking application running and supported after go-live.",
+        },
+        {
+          id: "service-categories",
+          label: "Service categories",
+          eyebrow: "Section 1",
+          title: "Major support areas",
+          summary: "Major support areas for the booking application.",
+        },
+        {
+          id: "roles-owners",
+          label: "Roles and owners",
+          eyebrow: "Section 2",
+          title: "Four roles cover the whole support model",
+          summary: "These roles define the operating model across service, operations, technical support, and access governance.",
+        },
+        {
+          id: "stakeholders",
+          label: "Stakeholders",
+          eyebrow: "Section 3",
+          title: "Who is involved",
+          summary: "The stakeholder list shows the internal and external groups that support the service after go-live.",
+        },
+        {
+          id: "routing",
+          label: "Routing",
+          eyebrow: "Section 4",
+          title: "Routing and escalation",
+          summary: "Use the service desk first, then route to the correct owner and escalation path.",
+        },
+        {
+          id: "contacts",
+          label: "Contacts",
+          eyebrow: "Section 5",
+          title: "Where to reach each team",
+          summary: "These contacts cover service desk, operations, technical support, vendors, and the original development team.",
+        },
+        {
+          id: "support-notes",
+          label: "Support notes",
+          eyebrow: "Section 6",
+          title: "Operating notes to remember",
+          summary: "These notes capture support hours, intake, severity, backup, and monitoring expectations.",
+        },
+      ];
+
+      function renderTextLine(line) {
+        if (typeof line !== "string") {
+          return line;
+        }
+
+        if (line.startsWith("http://") || line.startsWith("https://")) {
+          return (
+            <a
+              href={line}
+              target="_blank"
+              rel="noreferrer"
+              className="text-stone-700 underline decoration-[#EAB41E] decoration-2 underline-offset-4 hover:text-stone-900"
+            >
+              {line}
+            </a>
+          );
+        }
+
+        if (line.includes("@") && !line.includes(" ")) {
+          return (
+            <a
+              href={`mailto:${line}`}
+              className="text-stone-700 underline decoration-[#EAB41E] decoration-2 underline-offset-4 hover:text-stone-900"
+            >
+              {line}
+            </a>
+          );
+        }
+
+        return line;
+      }
+
+      function renderCell(cell) {
+        if (Array.isArray(cell)) {
+          return cell.map((line, index) => (
+            <span key={index} className="block">
+              {renderTextLine(line)}
+            </span>
+          ));
+        }
+
+        return renderTextLine(cell);
+      }
+
+      function DataTable({ headers, rows, dark = false }) {
+        const headClass = dark ? "bg-white/10 text-amber-200" : "bg-stone-50 text-stone-600";
+        const bodyClass = dark ? "divide-y divide-white/10" : "divide-y divide-stone-200";
+        const shellClass = dark ? "border border-white/10 bg-white/5" : "border border-stone-200 bg-white";
+        const cellClass = dark ? "px-4 py-3 text-stone-200" : "px-4 py-3 text-stone-700";
+
+        return (
+          <div className={`overflow-hidden rounded-[22px] ${shellClass}`}>
+            <table className="min-w-full text-left text-sm">
+              <thead className={headClass}>
+                <tr>
+                  {headers.map((header) => (
+                    <th key={header} className="px-4 py-3 font-semibold">
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className={bodyClass}>
+                {rows.map((row, rowIndex) => (
+                  <tr key={`${rowIndex}-${row[0]}`}>
+                    {row.map((cell, cellIndex) => (
+                      <td key={`${rowIndex}-${cellIndex}`} className={cellClass}>
+                        {renderCell(cell)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
+
+      function SectionFrame({ id, eyebrow, title, summary, tone = "light", children }) {
+        const shellClass = tone === "dark" ? "bg-[#111827] text-white" : "bg-white text-stone-900";
+        const summaryClass = tone === "dark" ? "text-stone-200" : "text-stone-700";
+        const eyebrowClass = tone === "dark" ? "text-amber-200" : "text-stone-500";
+
+        return (
+          <section id={id} className={`soft-border rounded-[30px] p-6 shadow-soft ${shellClass}`}>
+            <div className="max-w-3xl">
+              <p className={`text-xs font-semibold uppercase tracking-[0.28em] ${eyebrowClass}`}>{eyebrow}</p>
+              <h2 className="headline mt-3 text-3xl font-bold tracking-tight md:text-4xl">{title}</h2>
+              <p className={`measure mt-4 text-[17px] leading-[1.65] ${summaryClass}`}>{summary}</p>
+            </div>
+            <div className="mt-6">{children}</div>
+          </section>
+        );
+      }
+
+      function StatCard({ label, value, detail }) {
+        return (
+          <div className="soft-border rounded-[24px] bg-white/80 p-5 shadow-soft backdrop-blur">
+            <p className="text-sm font-medium text-stone-500">{label}</p>
+            <div className="mt-3 text-2xl font-bold tracking-tight text-stone-900">{value}</div>
+            <p className="measure mt-3 text-[16px] leading-[1.6] text-stone-600">{detail}</p>
+          </div>
+        );
+      }
+
+      function SectionContent({ id }) {
+        switch (id) {
+          case "overview":
+            return (
+              <div className="space-y-5">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-[24px] border border-stone-200 bg-white p-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">Guide intent</p>
+                    <p className="measure mt-3 text-[16px] leading-[1.6] text-stone-700">
+                      This guide is designed to keep the booking application running and supported after go-live.
+                    </p>
+                  </div>
+                  <div className="rounded-[24px] border border-stone-200 bg-[#111827] p-5 text-white">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-200">Support model</p>
+                    <p className="measure mt-3 text-[16px] leading-[1.6] text-stone-200">
+                      Service Desk logs and routes the request first. Operational, technical, and access governance owners then carry the work to resolution.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="overflow-hidden rounded-[24px] border border-stone-200 bg-white">
+                  <table className="min-w-full text-left text-sm">
+                    <tbody className="divide-y divide-stone-200">
+                      {quickFacts.map((row) => (
+                        <tr key={row[0]}>
+                          <th className="w-[28%] bg-stone-50 px-4 py-3 font-semibold text-stone-700">{row[0]}</th>
+                          <td className="px-4 py-3 text-stone-700">{row[1]}</td>
+                          <td className="px-4 py-3 text-stone-700">{row[2]}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          case "service-categories":
+            return (
+              <DataTable
+                headers={["Service category", "What it includes", "Primary owner"]}
+                rows={serviceCategories}
+              />
+            );
+          case "roles-owners":
+            return (
+              <DataTable headers={["Role", "Team", "What they do"]} rows={roles} />
+            );
+          case "stakeholders":
+            return (
+              <DataTable headers={["Type", "Who", "Role"]} rows={stakeholders} />
+            );
+          case "routing":
+            return (
+              <div className="space-y-5">
+                <div className="rounded-[24px] bg-[#111827] p-6 text-white">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-200">Routing rule</p>
+                  <p className="measure mt-3 text-[16px] leading-[1.6] text-stone-200">
+                    All requests start at the Service Desk. The owner then resolves the item or escalates it to the next group in the chain.
+                  </p>
+                </div>
+
+                <DataTable
+                  headers={["Request type", "First contact", "Owner", "Escalate to"]}
+                  rows={routing}
+                />
+              </div>
+            );
+          case "contacts":
+            return (
+              <DataTable
+                headers={["Team / vendor", "Contact"]}
+                rows={contacts}
+              />
+            );
+          case "support-notes":
+            return (
+              <div className="space-y-5">
+                <div className="rounded-[24px] border border-stone-200 bg-white p-6">
+                  <h3 className="text-lg font-semibold text-stone-900">Severity guide</h3>
+                  <div className="mt-4 overflow-hidden rounded-[22px] border border-stone-200">
+                    <table className="min-w-full text-left text-sm">
+                      <thead className="bg-stone-50 text-stone-600">
+                        <tr>
+                          <th className="px-4 py-3 font-semibold">Severity</th>
+                          <th className="px-4 py-3 font-semibold">Description</th>
+                          <th className="px-4 py-3 font-semibold">Target response</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-200">
+                        {severityRows.map((row) => (
+                          <tr key={row[0]}>
+                            {row.map((cell, index) => (
+                              <td key={`${row[0]}-${index}`} className="px-4 py-3 text-stone-700">
+                                {cell}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="rounded-[24px] bg-[#111827] p-6 text-white">
+                  <h3 className="text-lg font-semibold text-white">Support notes</h3>
+                  <ul className="measure mt-4 list-disc space-y-3 pl-5 text-[16px] leading-[1.6] text-stone-200 marker:text-amber-200">
+                    {supportNotes.map((note) => (
+                      <li key={note}>{note}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            );
+          default:
+            return null;
+        }
+      }
+
+      function App() {
+        const [activeSectionId, setActiveSectionId] = React.useState("overview");
+
+        const activeSection = sections.find((section) => section.id === activeSectionId) || sections[0];
+
+        return (
+          <div className="relative">
+            <div className="grain pointer-events-none absolute inset-0 opacity-25" />
+            <main className="relative mx-auto max-w-[1024px] px-4 py-6 sm:px-6 lg:px-0">
+              <div className="space-y-6">
+                <section className="soft-border rounded-[30px] bg-white/85 p-6 shadow-soft backdrop-blur">
+                  <div className="max-w-3xl">
+                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">Support guide</p>
+                    <h1 className="headline mt-3 text-4xl tracking-tight text-stone-900 md:text-5xl">
+                      WB11 Guest Room Booking
+                    </h1>
+                    <p className="measure mt-4 text-[17px] leading-[1.65] text-stone-700">
+                      Operations and support guide for the booking application after go-live.
+                    </p>
+                    <p className="measure mt-4 text-[17px] leading-[1.65] text-stone-700">
+                      The support path is built to keep the application easy to run, easy to hand off, and easy to escalate when a request needs the next owner.
+                    </p>
+                  </div>
+
+                  <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    {quickFacts.map((row) => (
+                      <StatCard key={row[0]} label={row[0]} value={row[1]} detail={row[2]} />
+                    ))}
+                  </div>
+                </section>
+
+                <section className="soft-border rounded-[30px] bg-[#FCEEC8] p-6 shadow-soft">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="max-w-2xl">
+                      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-600">Start here</p>
+                      <h2 className="headline mt-2 text-2xl font-bold tracking-tight text-stone-900">
+                        All requests start at SSD Helpdesk
+                      </h2>
+                      <ol className="measure mt-4 list-decimal space-y-2 pl-5 text-[16px] leading-[1.6] text-stone-700 marker:font-semibold marker:text-[#EAB41E]">
+                        {startHereSteps.map((step) => (
+                          <li key={step}>{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+                    <a
+                      href="https://helpdesk.ssd.org/"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="shrink-0 rounded-full bg-[#111827] px-6 py-3 text-center text-sm font-semibold text-white shadow-soft transition hover:-translate-y-0.5 hover:bg-stone-800"
+                    >
+                      Go to SSD Helpdesk
+                    </a>
+                  </div>
+                </section>
+
+                <div className="grid gap-6 lg:grid-cols-[22%_78%]">
+                  <aside className="hidden lg:block">
+                    <div className="sticky top-6 rounded-[30px] border border-stone-200 bg-white/85 p-4 shadow-soft backdrop-blur">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">Sections</p>
+                          <p className="mt-1 text-sm font-medium text-stone-700">Choose a guide area</p>
+                        </div>
+                        <span className="rounded-full bg-[#FCEEC8] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-stone-700">
+                          {sections.length}
+                        </span>
+                      </div>
+                      <nav className="mt-4 flex flex-col gap-2" aria-label="Support guide sections">
+                        {sections.map((section) => {
+                          const active = section.id === activeSectionId;
+
+                          return (
+                            <button
+                              key={section.id}
+                              type="button"
+                              onClick={() => setActiveSectionId(section.id)}
+                              aria-pressed={active}
+                              aria-controls={`section-panel-${section.id}`}
+                              className={`rounded-[18px] border px-4 py-3 text-left text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#EAB41E]/40 ${
+                                active
+                                  ? "border-[#EAB41E] bg-[#FCEEC8] text-stone-900 shadow-sm"
+                                  : "border-stone-200 bg-white text-stone-700 hover:border-stone-300 hover:bg-stone-50"
+                              }`}
+                            >
+                              <span className="block">{section.label}</span>
+                            </button>
+                          );
+                        })}
+                      </nav>
+                    </div>
+                  </aside>
+
+                  <div className="space-y-6">
+                    <div className="lg:hidden">
+                      <div className="soft-border rounded-[30px] bg-white/85 p-4 shadow-soft backdrop-blur">
+                        <label htmlFor="section-picker" className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">
+                          Sections
+                        </label>
+                        <select
+                          id="section-picker"
+                          value={activeSectionId}
+                          onChange={(event) => setActiveSectionId(event.target.value)}
+                          className="mt-3 w-full rounded-[18px] border border-stone-200 bg-white px-4 py-3 text-base font-medium text-stone-900 shadow-sm focus:border-[#EAB41E] focus:outline-none focus:ring-2 focus:ring-[#EAB41E]/30"
+                        >
+                          {sections.map((section) => (
+                            <option key={section.id} value={section.id}>
+                              {section.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <SectionFrame
+                      id={`section-panel-${activeSection.id}`}
+                      eyebrow={activeSection.eyebrow}
+                      title={activeSection.title}
+                      summary={activeSection.summary}
+                    >
+                      <SectionContent id={activeSection.id} />
+                    </SectionFrame>
+
+                    <footer className="border-t border-stone-200 py-4 text-sm text-stone-600">
+                      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <p>WB11 Guest Room Booking | Support Guide</p>
+                        <p className="text-stone-500">
+                          Owner: {pageMeta.owner} | v{pageMeta.version} | Updated {pageMeta.lastUpdated}
+                        </p>
+                      </div>
+                    </footer>
+                  </div>
+                </div>
+              </div>
+            </main>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>
